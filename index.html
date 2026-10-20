@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub Profile Widget</title>
+  <style>
+    :root {
+      --sp-bg: #ffffff;
+      --sp-text: #24292f;
+      --sp-subtext: #57609a;
+      --sp-border: #d0d7de;
+      --sp-card-bg: #f6f8fa;
+      --sp-accent: #0969da;
+      --sp-font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Segoe UI Web (West European)", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--sp-font);
+      background-color: var(--sp-bg);
+      color: var(--sp-text);
+      padding: 16px;
+      line-height: 1.5;
+    }
+
+    .widget-container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    /* Header Profile Card */
+    .profile-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      background: var(--sp-card-bg);
+      border: 1px solid var(--sp-border);
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: 2px solid var(--sp-border);
+      object-fit: cover;
+    }
+
+    .profile-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .profile-name {
+      font-size: 1.15rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .profile-name a {
+      color: var(--sp-text);
+      text-decoration: none;
+    }
+
+    .profile-name a:hover {
+      color: var(--sp-accent);
+      text-decoration: underline;
+    }
+
+    .profile-bio {
+      font-size: 0.875rem;
+      color: #57606a;
+      margin: 4px 0 8px 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .profile-meta {
+      display: flex;
+      gap: 14px;
+      font-size: 0.8rem;
+      color: #57606a;
+    }
+
+    /* Repository Grid */
+    .section-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #57606a;
+    }
+
+    .repo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+    }
+
+    .repo-card {
+      background: #ffffff;
+      border: 1px solid var(--sp-border);
+      border-radius: 6px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .repo-card:hover {
+      border-color: var(--sp-accent);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    .repo-header {
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+
+    .repo-header a {
+      color: var(--sp-accent);
+      text-decoration: none;
+      word-break: break-word;
+    }
+
+    .repo-header a:hover {
+      text-decoration: underline;
+    }
+
+    .repo-desc {
+      font-size: 0.8rem;
+      color: #57606a;
+      margin-bottom: 12px;
+      flex-grow: 1;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .repo-footer {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.75rem;
+      color: #57606a;
+    }
+
+    .repo-lang {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .lang-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #0969da;
+    }
+
+    /* State messages */
+    .status-msg {
+      text-align: center;
+      padding: 40px;
+      color: #57606a;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="widget-container">
+    <div id="loading" class="status-msg">Loading GitHub data...</div>
+    <div id="error" class="status-msg" style="display:none; color: #cf222e;"></div>
+
+    <div id="content" style="display: none;">
+      <!-- Profile Header -->
+      <div class="profile-card">
+        <img id="user-avatar" class="avatar" src="" alt="Avatar">
+        <div class="profile-info">
+          <div class="profile-name">
+            <span id="user-name"></span>
+            <a id="user-login-link" href="" target="_blank" rel="noopener noreferrer" style="font-size: 0.85rem; color: #57606a;"></a>
+          </div>
+          <div id="user-bio" class="profile-bio"></div>
+          <div class="profile-meta">
+            <span>Repos: <strong id="user-repos">0</strong></span>
+            <span>Followers: <strong id="user-followers">0</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Repositories -->
+      <div class="section-title">Recent Active Repositories</div>
+      <div id="repo-list" class="repo-grid"></div>
+    </div>
+  </div>
+
+  <script>
+    // 1. Set your default GitHub username here:
+    const DEFAULT_USERNAME = 'octocat';
+
+    // 2. Or allow setting ?user=yourname dynamically in the iframe URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const USERNAME = urlParams.get('user') || DEFAULT_USERNAME;
+
+    async function fetchGitHubData() {
+      const loadingEl = document.getElementById('loading');
+      const errorEl = document.getElementById('error');
+      const contentEl = document.getElementById('content');
+
+      try {
+        const [userRes, reposRes] = await Promise.all([
+          fetch(`https://api.github.com/users/${encodeURIComponent(USERNAME)}`),
+          fetch(`https://api.github.com/users/${encodeURIComponent(USERNAME)}/repos?sort=updated&per_page=6`)
+        ]);
+
+        if (userRes.status === 403 || reposRes.status === 403) {
+          throw new Error('API rate limit exceeded. Please try again later.');
+        }
+
+        if (!userRes.ok) {
+          throw new Error(`GitHub user "${USERNAME}" not found.`);
+        }
+
+        const user = await userRes.json();
+        const repos = await reposRes.json();
+
+        // Render Profile Info
+        document.getElementById('user-avatar').src = user.avatar_url;
+        document.getElementById('user-name').textContent = user.name || user.login;
+        
+        const loginLink = document.getElementById('user-login-link');
+        loginLink.textContent = `@${user.login}`;
+        loginLink.href = user.html_url;
+
+        document.getElementById('user-bio').textContent = user.bio || 'No bio provided.';
+        document.getElementById('user-repos').textContent = user.public_repos;
+        document.getElementById('user-followers').textContent = user.followers;
+
+        // Render Repositories
+        const repoList = document.getElementById('repo-list');
+        repoList.innerHTML = '';
+
+        repos.forEach(repo => {
+          const card = document.createElement('div');
+          card.className = 'repo-card';
+          card.innerHTML = `
+            <div>
+              <div class="repo-header">
+                <a href="${repo.html_url}" target="_blank" rel="noopener noreferrer">${repo.name}</a>
+              </div>
+              <div class="repo-desc">${repo.description || 'No description provided.'}</div>
+            </div>
+            <div class="repo-footer">
+              ${repo.language ? `<span class="repo-lang"><span class="lang-dot"></span>${repo.language}</span>` : ''}
+              <span>★ ${repo.stargazers_count}</span>
+              <span>⑂ ${repo.forks_count}</span>
+            </div>
+          `;
+          repoList.appendChild(card);
+        });
+
+        loadingEl.style.display = 'none';
+        contentEl.style.display = 'block';
+
+      } catch (err) {
+        loadingEl.style.display = 'none';
+        errorEl.textContent = err.message;
+        errorEl.style.display = 'block';
+      }
+    }
+
+    fetchGitHubData();
+  </script>
+</body>
+</html>
