@@ -5,14 +5,51 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GitHub Profile Widget</title>
   <style>
+    /* 1. Default: Light Mode (SharePoint / Fluent UI Light) */
     :root {
       --sp-bg: #ffffff;
       --sp-text: #24292f;
-      --sp-subtext: #57609a;
+      --sp-subtext: #57606a;
       --sp-border: #d0d7de;
       --sp-card-bg: #f6f8fa;
-      --sp-accent: #0969da;
+      --sp-repo-bg: #ffffff;
+      --sp-accent: #0078d4;
       --sp-font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Segoe UI Web (West European)", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    /* 2. Auto-Detect: OS/Browser Dark Mode (SharePoint / Fluent UI Dark) */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --sp-bg: #1b1a19;
+        --sp-text: #f3f2f1;
+        --sp-subtext: #a19f9d;
+        --sp-border: #3b3a39;
+        --sp-card-bg: #252423;
+        --sp-repo-bg: #201f1e;
+        --sp-accent: #2886de;
+      }
+    }
+
+    /* 3. Explicit Override via ?theme=dark */
+    body.force-dark {
+      --sp-bg: #1b1a19;
+      --sp-text: #f3f2f1;
+      --sp-subtext: #a19f9d;
+      --sp-border: #3b3a39;
+      --sp-card-bg: #252423;
+      --sp-repo-bg: #201f1e;
+      --sp-accent: #2886de;
+    }
+
+    /* 4. Explicit Override via ?theme=light */
+    body.force-light {
+      --sp-bg: #ffffff;
+      --sp-text: #24292f;
+      --sp-subtext: #57606a;
+      --sp-border: #d0d7de;
+      --sp-card-bg: #f6f8fa;
+      --sp-repo-bg: #ffffff;
+      --sp-accent: #0078d4;
     }
 
     * {
@@ -27,6 +64,7 @@
       color: var(--sp-text);
       padding: 16px;
       line-height: 1.5;
+      transition: background-color 0.2s ease, color 0.2s ease;
     }
 
     .widget-container {
@@ -79,7 +117,7 @@
 
     .profile-bio {
       font-size: 0.875rem;
-      color: #57606a;
+      color: var(--sp-subtext);
       margin: 4px 0 8px 0;
       white-space: nowrap;
       overflow: hidden;
@@ -90,7 +128,11 @@
       display: flex;
       gap: 14px;
       font-size: 0.8rem;
-      color: #57606a;
+      color: var(--sp-subtext);
+    }
+
+    .profile-meta strong {
+      color: var(--sp-text);
     }
 
     /* Repository Grid */
@@ -100,7 +142,7 @@
       margin-bottom: 12px;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: #57606a;
+      color: var(--sp-subtext);
     }
 
     .repo-grid {
@@ -110,7 +152,7 @@
     }
 
     .repo-card {
-      background: #ffffff;
+      background: var(--sp-repo-bg);
       border: 1px solid var(--sp-border);
       border-radius: 6px;
       padding: 14px;
@@ -122,7 +164,7 @@
 
     .repo-card:hover {
       border-color: var(--sp-accent);
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
     }
 
     .repo-header {
@@ -143,7 +185,7 @@
 
     .repo-desc {
       font-size: 0.8rem;
-      color: #57606a;
+      color: var(--sp-subtext);
       margin-bottom: 12px;
       flex-grow: 1;
       display: -webkit-box;
@@ -157,7 +199,7 @@
       align-items: center;
       gap: 12px;
       font-size: 0.75rem;
-      color: #57606a;
+      color: var(--sp-subtext);
     }
 
     .repo-lang {
@@ -170,14 +212,14 @@
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background-color: #0969da;
+      background-color: var(--sp-accent);
     }
 
     /* State messages */
     .status-msg {
       text-align: center;
       padding: 40px;
-      color: #57606a;
+      color: var(--sp-subtext);
       font-size: 0.9rem;
     }
   </style>
@@ -195,7 +237,7 @@
         <div class="profile-info">
           <div class="profile-name">
             <span id="user-name"></span>
-            <a id="user-login-link" href="" target="_blank" rel="noopener noreferrer" style="font-size: 0.85rem; color: #57606a;"></a>
+            <a id="user-login-link" href="" target="_blank" rel="noopener noreferrer" style="font-size: 0.85rem; color: var(--sp-subtext);"></a>
           </div>
           <div id="user-bio" class="profile-bio"></div>
           <div class="profile-meta">
@@ -212,12 +254,18 @@
   </div>
 
   <script>
-    // 1. Set your default GitHub username here:
-    const DEFAULT_USERNAME = 'octocat';
+    const DEFAULT_USERNAME = 'ansovraen';
 
-    // 2. Or allow setting ?user=yourname dynamically in the iframe URL
     const urlParams = new URLSearchParams(window.location.search);
     const USERNAME = urlParams.get('user') || DEFAULT_USERNAME;
+    const THEME = urlParams.get('theme');
+
+    // Apply URL-driven theme overrides if supplied
+    if (THEME === 'dark') {
+      document.body.classList.add('force-dark');
+    } else if (THEME === 'light') {
+      document.body.classList.add('force-light');
+    }
 
     async function fetchGitHubData() {
       const loadingEl = document.getElementById('loading');
